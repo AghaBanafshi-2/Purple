@@ -1,0 +1,38 @@
+name: Extract & Setup Project
+
+on:
+  push:
+    paths:
+      - '*.zip'
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find and extract ZIP
+        run: |
+          ZIP=$(find . -maxdepth 1 -name "*.zip" | head -1)
+          echo "Found: $ZIP"
+          unzip -o "$ZIP" -d extracted/
+          TOP=$(ls extracted/ | head -1)
+          cp -r extracted/$TOP/. .
+          rm -rf extracted/
+          rm -f "$ZIP"
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Extract project from ZIP"
+          git push
